@@ -1,36 +1,42 @@
-const API_URL = "http://localhost:8000";
+const API_URL = "http://localhost:8000"; // Flask backend
 
-// Video Upload
+
+// Handle the video upload form submission
 document.getElementById("uploadForm").onsubmit = async (e) => {
-  e.preventDefault();
+  e.preventDefault(); // Stop browser from reloading the page by default when the form submits
+
+  // 1. Grab the file object (the video the user selected)
   const file = document.getElementById("videoFile").files[0];
+
+  // 2. Build a FormData object which lets us send files in HTTP POST
   const formData = new FormData();
   formData.append("video", file);
+  // The key "video" MUST match what Flask expects: request.files["video"]
 
-  const res = await fetch(`${API_URL}/upload`, { method: "POST", body: formData });
+  // 3. Send POST request to Flask backend (/upload endpoint)
+  // Body contains the FormData (so the actual MP4 file is uploaded)
+  const res = await fetch(`${API_URL}/upload`,{
+    method: "POST",
+    body: formData
+});
 
-  //   const json = await res.json();
-// Fake response (pretend backend processed video)
-  const json = {
-    frames: [
-      { time: 0, emotion: "happy" },
-      { time: 1, emotion: "neutral" },
-      { time: 2, emotion: "sad" },
-      { time: 3, emotion: "happy" },
-    ],
-    summary: { happy: 50, neutral: 25, sad: 25 }
-  };
+  // 4. Parse backend JSON response (will contain per-frame emotions + timestamps)
+  const json = await res.json();
 
+  // 5. Display the JSON results in the <pre id="results"> HTML element
   document.getElementById("results").textContent = JSON.stringify(json, null, 2);
 
+  // 6. Draw timeline chart of emotions across frames (function defined below)
   drawTimeline(json.frames);
 };
 
-// Webcam Stream
+
+// Webcam stream (outside of MVP)
 const video = document.getElementById("webcam");
 navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
   video.srcObject = stream;
 });
+
 
 setInterval(async () => {
   const canvas = document.getElementById("canvas");
@@ -55,7 +61,8 @@ const json = await res.json();
   document.getElementById("liveResults").textContent = JSON.stringify(json);
 }, 1000);
 
-// Chart.js Timeline
+
+// Chart.js data visualization
 let chart;
 function drawTimeline(frames) {
   const labels = frames.map(f => f.time);
