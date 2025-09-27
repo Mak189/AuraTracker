@@ -1,0 +1,13 @@
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  background: #111;
+  color: #eee;
+}
+
+video,
+canvas {
+  border: 2px solid #555;
+  border-radius: 12px;
+  margin-top: 10px;
+}
