@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Emotion Detector</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Emotion Detector</h1>
+
+  <h2>Upload Video</h2>
+  <form id="uploadForm">
+    <input type="file" id="videoFile" accept="video/*">
+    <button type="submit">Upload</button>
+  </form>
+  <pre id="results"></pre>
+
+  <h2>Live Webcam</h2>
+  <video id="webcam" autoplay playsinline></video>
+  <canvas id="canvas" style="display:none;"></canvas>
+  <pre id="liveResults"></pre>
+
+  <h2>Emotion Timeline</h2>
+  <canvas id="timeline"></canvas>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
+
