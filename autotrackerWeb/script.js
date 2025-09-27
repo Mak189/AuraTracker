@@ -29,7 +29,7 @@ faceMesh.onResults((results) => {
 });
 
 // Webcam setup
-const camera = new Camera(videoElement, {
+const camera = new camera(videoElement, {
   onFrame: async () => {
     await faceMesh.send({ image: videoElement });
   },

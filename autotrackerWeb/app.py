@@ -1,14 +1,11 @@
 from flask import Flask, request
 from flask import Flask, jsonify
-
+from flask import Flask, render_template
 
 app = Flask(__name__)
-@app.route('/', methods = ['GET', 'POST'])
+@app.route("/")
 def home():
-    if(request.method == 'GET'):
-
-        data = "hello world"
-        return jsonify({'data': data})
+    return render_template("index.html")  # serves templates/index.html
 @app.route('/analyze',methods=["POST"])
 def analyze():
     if "video" not in request.files:
