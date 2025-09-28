@@ -11,8 +11,7 @@
  ***********************************************/
 
 // === CONFIG: change if your backend runs elsewhere ===
-const API_URL = "http://localhost:8000"; // Flask backend base URL (expects POST /upload)
-
+const API_URL = "http://127.0.0.1:5000/"; // Flask backend base URL (expects POST /upload)
 // === ELEMENT REFERENCES ===
 const uploadForm = document.getElementById("uploadForm");
 const videoFileInput = document.getElementById("videoFile");

@@ -1,18 +1,59 @@
 from flask import Flask, request
 from flask import Flask, jsonify
 from flask import Flask, render_template
+import tempfile
+import os
+import cv2
+from deepface import DeepFace
+from collections import Counter
 
 app = Flask(__name__)
 @app.route("/")
 def home():
     return render_template("index.html")  # serves templates/index.html
-@app.route('/analyze',methods=["POST"])
-def analyze():
+@app.route("/upload", methods=["POST"])
+def upload():
     if "video" not in request.files:
-        return jsonify({"error":"No video file"}), 400
+        return jsonify({"error": "No video file"}), 400
+
     video_file = request.files["video"]
-    video_bytes = video_file.read()
-    print(f"Received video of {len(video_bytes)} bytes")
-    return jsonify({"status":"success","message":"Video Recieved","length_bytes":len(video_bytes)})
+
+    # Save to a temporary file
+    tmp_fd, tmp_path = tempfile.mkstemp(suffix=".mp4")
+    video_file.save(tmp_path)
+    os.close(tmp_fd)
+
+    cap = cv2.VideoCapture(tmp_path)
+    frames = []
+    frame_count = 0
+    fps = cap.get(cv2.CAP_PROP_FPS) or 24  # default fallback if FPS missing
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        frame_count += 1
+
+        # sample every Nth frame (~1 per second)
+        if frame_count % int(fps) == 0:
+            try:
+                result = DeepFace.analyze(frame, actions=["emotion"], enforce_detection=False)
+                emotion = result[0]["dominant_emotion"]
+                time_sec = frame_count / fps
+                frames.append({"time": round(time_sec, 2), "emotion": emotion})
+            except Exception as e:
+                print("Error analyzing frame:", e)
+
+    cap.release()
+    os.remove(tmp_path)
+
+    # Build summary counts
+    summary = Counter(f["emotion"] for f in frames)
+
+    return jsonify({
+        "frames": frames,
+        "summary": summary,
+        "total_frames": frame_count
+    })
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
