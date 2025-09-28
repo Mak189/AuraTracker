@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Emotion Tracker</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <!-- Chart.js from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: system-ui, Arial; margin: 20px; max-width: 980px; }
+    .row { display:flex; gap:20px; align-items: flex-start; }
+    .column { flex:1; min-width: 280px; }
+    video { width:100%; max-width:640px; border:1px solid #ccc; background:#000; }
+    #recordStatus { position:absolute; top:10px; left:10px; background:rgba(0,0,0,0.6); color:#fff; padding:6px 10px; border-radius:8px; display:none; }
+    .controls { margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; }
+    pre { background:#f7f7f8; padding:10px; border-radius:6px; max-height:240px; overflow:auto; }
+    #snapshot { border: 1px solid #ddd; display:block; margin-top:8px; max-width:320px; }
+    #timelineContainer { position: relative; }
+    .muted { color:#666; font-size:0.9rem; }
+  </style>
+</head>
+<body>
+  <h1>Emotion Tracker</h1>
+
+  <div class="row">
+    <div class="column">
+      <h3>1) Upload a prerecorded video</h3>
+      <form id="uploadForm">
+        <input type="file" id="videoFile" accept="video/*" />
+        <div class="controls">
+          <button type="submit">Upload selected video</button>
+        </div>
+      </form>
+
+      <h3>2) Or record from your webcam</h3>
+      <div style="position:relative; display:inline-block;">
+        <video id="recordPreview" autoplay playsinline muted></video>
+        <div id="recordStatus">● Recording...</div>
+      </div>
+
+      <div class="controls" style="margin-top:10px;">
+        <button id="startRec">Start Recording</button>
+        <button id="stopRec" disabled>Stop Recording</button>
+        <button id="uploadRec" disabled>Upload Recording</button>
+      </div>
+
+      <p class="muted">Note: recordings are WebM in-browser. Backend should accept /upload for .webm or .mp4.</p>
+
+      <h3>3) Playback (selected/recorded)</h3>
+      <video id="playback" controls></video>
+      <canvas id="snapshot" width="320" height="180" aria-hidden="true"></canvas>
+    </div>
+
+    <!-- Temporary CSV loading UI for testing data visualization -->
+    <!-- Uncomment the following block to enable CSV loading -->
+    <!-- <h3>Test CSV</h3>
+    <input type="file" id="csvFile" accept=".csv" />
+    <button id="loadCsv">Load CSV</button> -->
+
+    <div class="column">
+      <h3>Raw results (for debugging)</h3>
+      <pre id="results">No results yet.</pre>
+
+      <h3>Emotion Timeline (click to scrub)</h3>
+      <div id="timelineContainer">
+        <canvas id="timeline" width="800" height="400"></canvas>
+      </div>
+
+      <h3>Legend</h3>
+      <div id="legend"></div>
+    </div>
+  </div>
+
+  <!-- Temporary PapaParse for CSV parsing for testing data visualization -->
+  <!-- PapaParse for CSV parsing -->
+  <!-- <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script> -->
+  
+  <script src="script.js"></script>
+</body>
+</html>
