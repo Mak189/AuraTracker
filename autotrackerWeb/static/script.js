@@ -11,7 +11,7 @@
  ***********************************************/
 
 // === CONFIG: change if your backend runs elsewhere ===
-const API_URL = "http://127.0.0.1:5001"
+const API_URL = "https://auratracker-qktu.onrender.com/"
 // === ELEMENT REFERENCES ===
 const uploadForm = document.getElementById("uploadForm");
 const videoFileInput = document.getElementById("videoFile");
