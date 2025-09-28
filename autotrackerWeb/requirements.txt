@@ -1,4 +1,4 @@
 flask>=2.2.5
 deepface>=0.0.92
 opencv-python-headless==4.9.0.80
-
+tf-keras
