@@ -11,12 +11,24 @@
  ***********************************************/
 
 // === CONFIG: change if your backend runs elsewhere ===
-const API_URL = "http://127.0.0.1:5000/"; // Flask backend base URL (expects POST /upload)
+const API_URL = "http://localhost:8000"; // Flask backend base URL (expects POST /upload)
+
 // === ELEMENT REFERENCES ===
 const uploadForm = document.getElementById("uploadForm");
 const videoFileInput = document.getElementById("videoFile");
 
 const recordPreview = document.getElementById("recordPreview"); // live webcam preview
+const liveCanvas = document.createElement('canvas');
+// Grab video and overlay canvas elements
+const liveOverlay = document.getElementById('liveOverlay');
+const liveCtx = liveCanvas.getContext('2d');
+
+// Ensure overlay matches video size once metadata is loaded
+recordPreview.addEventListener('loadedmetadata', () => {
+  liveOverlay.width = recordPreview.videoWidth;
+  liveOverlay.height = recordPreview.videoHeight;
+});
+
 const startRecBtn = document.getElementById("startRec");
 const stopRecBtn = document.getElementById("stopRec");
 const uploadRecBtn = document.getElementById("uploadRec");
@@ -57,6 +69,10 @@ let emotionReverse = {};     // numeric -> emotion label
 // * Drawing the line chart (time → emotion).
 // * Letting the user scrub through chart → jump to frame in video.
 let currentTimelineData = []; // array of {time, emotion}
+// For emotion timeline scrubbing, store the last uploaded/recorded
+// video file and URL
+let currentVideoFile = null;
+let currentVideoURL = null;
 
 /* ---------------------------
    1) Webcam preview + get media
@@ -68,7 +84,7 @@ async function initWebcam() {
     // attach stream to preview element so user sees live video
     recordPreview.srcObject = localStream;
     // ensure autoplay works on many browsers
-    recordPreview.play().catch(() => { });
+    recordPreview.play().catch(()=>{});
   } catch (err) {
     console.error("Could not access webcam:", err);
     alert("Webcam access denied or not available. Check permissions and that you're serving over http://localhost.");
@@ -106,6 +122,55 @@ function initRecorder() {
     uploadRecBtn.disabled = false;
   };
 }
+
+
+/**
+ * Display the predicted emotion as an overlay on the live video feed
+ * @param {string} emotion - Emotion string returned from backend (e.g. "neutral", "frowning")
+ */
+function displayLiveEmotion(emotion) {
+  // Clear any old overlay drawings
+  liveCtx.clearRect(0, 0, liveOverlay.width, liveOverlay.height);
+
+  // Draw a semi-transparent black rectangle in top-left corner
+  liveCtx.fillStyle = 'rgba(0,0,0,0.5)';
+  liveCtx.fillRect(10, 10, 150, 40);
+
+  // Draw emotion text in white
+  liveCtx.fillStyle = 'white';
+  liveCtx.font = '20px sans-serif';
+  liveCtx.fillText(`Emotion: ${emotion}`, 20, 40);
+}
+
+
+// Poll backend every 300ms (~3 FPS) with a frame from the webcam
+setInterval(async () => {
+  // 1. Capture a frame from the video
+  const tmpCanvas = document.createElement('canvas');
+  tmpCanvas.width = recordPreview.videoWidth;
+  tmpCanvas.height = recordPreview.videoHeight;
+  tmpCanvas.getContext('2d').drawImage(recordPreview, 0, 0);
+
+  // 2. Convert captured frame into an image blob (JPEG)
+  const blob = await new Promise(resolve =>
+    tmpCanvas.toBlob(resolve, 'image/jpeg', 0.6) // 0.6 = quality setting
+  );
+
+  // 3. Send frame to backend
+  const formData = new FormData();
+  formData.append('frame', blob);
+
+  const res = await fetch(`${API_URL}/live_emotion`, {
+    method: 'POST',
+    body: formData
+  });
+  const { emotion } = await res.json(); // Expect response { emotion: "neutral" }
+
+  // 4. Draw overlay with backend result
+  displayLiveEmotion(emotion);
+
+}, 300);
+
 
 /* ---------------------------
    3) UI: start / stop / upload recording
@@ -171,6 +236,11 @@ async function uploadVideoFile(file) {
   try {
     const formData = new FormData();
     formData.append("video", file);
+
+    // store video reference globally
+    currentVideoFile = file;
+    currentVideoURL = URL.createObjectURL(file);
+    playback.src = currentVideoURL; // set video for playback
 
     const res = await fetch(`${API_URL}/upload`, {
       method: "POST",
@@ -241,7 +311,7 @@ function setupAndDrawTimeline(frames) {
   if (chart) chart.destroy();
 
   chart = new Chart(timelineCanvas.getContext("2d"), {
-    type: "line",
+    type: "scatter,
     data: {
       labels: labels, // used for tooltips & x axis
       datasets: [{
@@ -260,7 +330,7 @@ function setupAndDrawTimeline(frames) {
         x: {
           type: 'linear',
           position: 'bottom',
-          title: { display: true, text: 'Time (s)' },
+          title: { display:true, text: 'Time (s)' },
           ticks: {
             callback: function(value, index, ticks) {
               // value is numeric time (we used labels to store times)
@@ -270,7 +340,7 @@ function setupAndDrawTimeline(frames) {
         },
         y: {
           type: 'linear',
-          title: { display: true, text: 'Emotion' },
+          title: { display:true, text: 'Emotion' },
           ticks: {
             stepSize: 1,
             callback: function(value, index, values) {
@@ -323,23 +393,12 @@ function chartClickSeek(evt, activeEls) {
 
   // seek the playback video (if present)
   try {
+  if (playback.src) {
     playback.currentTime = frame.time;
-    // draw snapshot for user
-    setTimeout(drawSnapshotAtCurrentTime, 150); // small delay to allow seeking
-  } catch (err) {
-    console.warn("Could not seek playback:", err);
+    setTimeout(drawSnapshotAtCurrentTime, 100);
   }
-}
-
-// draw a snapshot (frame) from the playback video onto the small canvas
-function drawSnapshotAtCurrentTime() {
-  if (!playback || playback.readyState < 2) return; // not ready
-  const ctx = snapshotCanvas.getContext('2d');
-  // match canvas size to video aspect (here we keep given canvas dims)
-  try {
-    ctx.drawImage(playback, 0, 0, snapshotCanvas.width, snapshotCanvas.height);
-  } catch (err) {
-    console.warn("Snapshot draw failed:", err);
+  } catch(err) {
+    console.warn("Could not seek playback:", err);
   }
 }
 
@@ -379,3 +438,38 @@ videoFileInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') uploadForm.requestSubmit();
 });
 
+
+// Temporary PapaParse for CSV parsing for testing data visualization
+// (uncomment to enable CSV loading UI in index.html)
+
+// const csvFileInput = document.getElementById('csvFile');
+// const loadCsvBtn = document.getElementById('loadCsv');
+
+// loadCsvBtn.addEventListener('click', () => {
+//   const file = csvFileInput.files[0];
+//   if (!file) {
+//     alert("Select a CSV file first");
+//     return;
+//   }
+
+//   Papa.parse(file, {
+//     header: true,        // CSV has header row
+//     dynamicTyping: true, // converts numbers automatically
+//     skipEmptyLines: true,
+//     complete: function(results) {
+//       // map CSV columns to frame objects for Chart.js
+//       const frames = results.data
+//         .filter(r => r.time != null && r.label) // remove empty rows
+//         .map(r => ({ time: Number(r.time), emotion: String(r.label) }));
+
+//       // assign to timeline data and draw chart
+//       currentTimelineData = frames;
+//       setupAndDrawTimeline(currentTimelineData);
+//       resultsPre.textContent = "CSV loaded successfully!";
+//     },
+//     error: function(err) {
+//       console.error("CSV parse error:", err);
+//       alert("Error parsing CSV. See console for details.");
+//     }
+//   });
+// });
