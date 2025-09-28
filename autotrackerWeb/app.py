@@ -6,6 +6,8 @@ import os
 import cv2
 from deepface import DeepFace
 from collections import Counter
+import numpy as np
+
 
 app = Flask(__name__)
 @app.route("/")
@@ -55,5 +57,24 @@ def upload():
         "summary": summary,
         "total_frames": frame_count
     })
+@app.route("/live", methods=["POST"])
+def live():
+    if "frame" not in request.files:
+        return jsonify({"error": "No frame file"}), 400
+
+    frame_file = request.files["frame"]
+
+    # Convert uploaded JPEG blob to OpenCV frame
+    file_bytes = np.frombuffer(frame_file.read(), np.uint8)
+    frame = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+
+    try:
+        result = DeepFace.analyze(frame, actions=["emotion"], enforce_detection=False)
+        emotion = result[0]["dominant_emotion"]
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    return jsonify({"emotion": emotion})
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)

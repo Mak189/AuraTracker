@@ -11,8 +11,7 @@
  ***********************************************/
 
 // === CONFIG: change if your backend runs elsewhere ===
-const API_URL = "http://localhost:8000"; // Flask backend base URL (expects POST /upload)
-
+const API_URL = "http://127.0.0.1:5001"
 // === ELEMENT REFERENCES ===
 const uploadForm = document.getElementById("uploadForm");
 const videoFileInput = document.getElementById("videoFile");
@@ -84,7 +83,7 @@ async function initWebcam() {
     // attach stream to preview element so user sees live video
     recordPreview.srcObject = localStream;
     // ensure autoplay works on many browsers
-    recordPreview.play().catch(()=>{});
+    recordPreview.play().catch(() => { });
   } catch (err) {
     console.error("Could not access webcam:", err);
     alert("Webcam access denied or not available. Check permissions and that you're serving over http://localhost.");
@@ -160,7 +159,7 @@ setInterval(async () => {
   const formData = new FormData();
   formData.append('frame', blob);
 
-  const res = await fetch(`${API_URL}/live_emotion`, {
+  const res = await fetch(`${API_URL}/live`, {
     method: 'POST',
     body: formData
   });
@@ -311,7 +310,7 @@ function setupAndDrawTimeline(frames) {
   if (chart) chart.destroy();
 
   chart = new Chart(timelineCanvas.getContext("2d"), {
-    type: "scatter,
+    type: "scatter",
     data: {
       labels: labels, // used for tooltips & x axis
       datasets: [{
@@ -330,7 +329,7 @@ function setupAndDrawTimeline(frames) {
         x: {
           type: 'linear',
           position: 'bottom',
-          title: { display:true, text: 'Time (s)' },
+          title: { display: true, text: 'Time (s)' },
           ticks: {
             callback: function(value, index, ticks) {
               // value is numeric time (we used labels to store times)
@@ -340,7 +339,7 @@ function setupAndDrawTimeline(frames) {
         },
         y: {
           type: 'linear',
-          title: { display:true, text: 'Emotion' },
+          title: { display: true, text: 'Emotion' },
           ticks: {
             stepSize: 1,
             callback: function(value, index, values) {
@@ -393,11 +392,11 @@ function chartClickSeek(evt, activeEls) {
 
   // seek the playback video (if present)
   try {
-  if (playback.src) {
-    playback.currentTime = frame.time;
-    setTimeout(drawSnapshotAtCurrentTime, 100);
-  }
-  } catch(err) {
+    if (playback.src) {
+      playback.currentTime = frame.time;
+      setTimeout(drawSnapshotAtCurrentTime, 100);
+    }
+  } catch (err) {
     console.warn("Could not seek playback:", err);
   }
 }
