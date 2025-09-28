@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <title>Emotion Detection — Frontend</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <!-- Chart.js from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    html {
+      height: 100%;
+      background: linear-gradient(135deg, #1cabb0 0%, #dd00ae 50%, #ffd700 100%);
+      background-attachment: fixed;
+      background-repeat: no-repeat;
+      background-size: cover;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #1cabb0 0%, #dd00ae 50%, #ffd700 100%);
+      background-attachment: fixed;
+      background-repeat: no-repeat;
+      background-size: cover;
+      min-height: 100vh;
+      color: #333;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+      color: white;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      margin: 0 0 10px 0;
+      font-weight: 300;
+    }
+
+    .header p {
+      font-size: 1.1rem;
+      opacity: 0.9;
+      margin: 0;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      align-items: start;
+    }
+
+    @media (max-width: 768px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .header h1 {
+        font-size: 2rem;
+      }
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 25px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+    }
+
+    .section-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin: 0 0 20px 0;
+      color: #4a5568;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-title::before {
+      content: '';
+      width: 4px;
+      height: 24px;
+      background: linear-gradient(135deg, #1cabb0, #dd00ae);
+      border-radius: 2px;
+    }
+
+    .upload-section {
+      margin-bottom: 30px;
+    }
+
+    .file-input-wrapper {
+      position: relative;
+      display: inline-block;
+      width: 100%;
+    }
+
+    .file-input {
+      position: absolute;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+    }
+
+    .file-input-display {
+      display: flex;
+      align-items: center;
+      padding: 15px 20px;
+      border: 2px dashed #cbd5e0;
+      border-radius: 12px;
+      background: #f8fafc;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .file-input-display:hover {
+      border-color: #667eea;
+      background: #edf2f7;
+    }
+
+    .file-input-display.drag-over {
+      border-color: #667eea;
+      background: #ebf4ff;
+    }
+
+    .upload-icon {
+      width: 24px;
+      height: 24px;
+      margin-right: 12px;
+      fill: #718096;
+    }
+
+    .video-container {
+      position: relative;
+      display: inline-block;
+      width: 100%;
+      margin: 15px 0;
+    }
+
+    video {
+      width: 100%;
+      max-width: 100%;
+      border-radius: 12px;
+      background: #000;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    canvas {
+      border-radius: 12px;
+    }
+
+    #liveOverlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      border-radius: 12px;
+      z-index: 10;
+    }
+
+    #recordStatus {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: rgba(220, 38, 38, 0.9);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      display: none;
+      animation: pulse 2s infinite;
+      z-index: 20;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 0.9;
+      }
+
+      50% {
+        opacity: 0.6;
+      }
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 15px;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    .btn:hover::before {
+      left: 100%;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+    }
+
+    .btn-secondary {
+      background: linear-gradient(135deg, #48bb78, #38a169);
+      color: white;
+      box-shadow: 0 4px 15px rgba(72, 187, 120, 0.4);
+    }
+
+    .btn-secondary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(72, 187, 120, 0.6);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #f56565, #e53e3e);
+      color: white;
+      box-shadow: 0 4px 15px rgba(245, 101, 101, 0.4);
+    }
+
+    .btn-danger:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(245, 101, 101, 0.6);
+    }
+
+    .btn:disabled {
+      background: #e2e8f0;
+      color: #a0aec0;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .btn:disabled::before {
+      display: none;
+    }
+
+    .results-panel {
+      background: #1a202c;
+      color: #e2e8f0;
+      padding: 20px;
+      border-radius: 12px;
+      max-height: 300px;
+      overflow: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .results-panel::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .results-panel::-webkit-scrollbar-track {
+      background: #2d3748;
+      border-radius: 4px;
+    }
+
+    .results-panel::-webkit-scrollbar-thumb {
+      background: #4a5568;
+      border-radius: 4px;
+    }
+
+    .results-panel::-webkit-scrollbar-thumb:hover {
+      background: #718096;
+    }
+
+    #timelineContainer {
+      position: relative;
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.1);
+      margin: 15px 0;
+    }
+
+    #timeline {
+      width: 100%;
+      cursor: pointer;
+      border-radius: 8px;
+    }
+
+    #snapshot {
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      margin-top: 15px;
+      max-width: 100%;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-top: 15px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: rgba(28, 171, 176, 0.1);
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .legend-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 2px solid white;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .note {
+      background: linear-gradient(135deg, #fff3cd, #ffd700);
+      padding: 15px;
+      border-radius: 12px;
+      margin-top: 15px;
+      border-left: 4px solid #dd00ae;
+      color: #333;
+      font-size: 0.9rem;
+    }
+
+    .status-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-top: 10px;
+    }
+
+    .status-ready {
+      background: rgba(72, 187, 120, 0.2);
+      color: #38a169;
+    }
+
+    .status-processing {
+      background: rgba(102, 126, 234, 0.2);
+      color: #667eea;
+    }
+
+    .status-error {
+      background: rgba(245, 101, 101, 0.2);
+      color: #e53e3e;
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(102, 126, 234, 0.3);
+      border-radius: 50%;
+      border-top-color: #667eea;
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎭 Emotion Detection</h1>
+      <p>Advanced AI-powered facial emotion recognition</p>
+    </div>
+
+    <div class="main-grid">
+      <!-- Left Column: Video Input & Controls -->
+      <div class="card">
+        <div class="section-title">📁 Upload Video</div>
+        <div class="upload-section">
+          <form id="uploadForm">
+            <div class="file-input-wrapper">
+              <input type="file" id="videoFile" accept="video/*" class="file-input" />
+              <div class="file-input-display">
+                <svg class="upload-icon" viewBox="0 0 24 24">
+                  <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                </svg>
+                <span>Choose video file or drag & drop here</span>
+              </div>
+            </div>
+            <div class="controls">
+              <button type="submit" class="btn btn-primary">Upload & Analyze</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="section-title">🎥 Live Recording</div>
+        <div class="video-container">
+          <video id="recordPreview" autoplay playsinline></video>
+          <canvas id="liveOverlay"></canvas>
+          <div id="recordStatus">● Recording...</div>
+        </div>
+
+        <div class="controls">
+          <button id="startRec" class="btn btn-secondary">Start Recording</button>
+          <button id="stopRec" class="btn btn-danger" disabled>Stop Recording</button>
+          <button id="uploadRec" class="btn btn-primary" disabled>Upload Recording</button>
+        </div>
+
+        <div class="note">
+          💡 <strong>Tip:</strong> For best results, ensure good lighting and keep your face clearly visible in the
+          frame.
+        </div>
+
+        <div class="section-title">▶️ Playback</div>
+        <div class="video-container">
+          <video id="playback" controls></video>
+        </div>
+        <canvas id="snapshot" width="320" height="180"></canvas>
+
+        <div class="status-indicator status-ready">
+          <span>🟢</span> Ready to process video
+        </div>
+      </div>
+
+      <!-- Right Column: Results & Analysis -->
+      <div class="card">
+        <div class="section-title">🔍 Analysis Results</div>
+        <div class="results-panel" id="results">
+          {
+          "status": "waiting",
+          "message": "Upload a video or start recording to begin emotion analysis...",
+          "timestamp": "Ready"
+          }
+        </div>
+
+        <div class="section-title">📊 Emotion Timeline</div>
+        <div class="note">
+          Click on the timeline below to scrub through different moments in the video
+        </div>
+        <div id="timelineContainer">
+          <canvas id="timeline" width="600" height="200"></canvas>
+        </div>
+
+        <div class="section-title">🏷️ Legend</div>
+        <div class="legend" id="legend">
+          <div class="legend-item">
+            <div class="legend-color" style="background: #1cabb0;"></div>
+            <span>Happy</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: #ffd700;"></div>
+            <span>Neutral</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: #00bfff;"></div>
+            <span>Sad</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: #ffff00;"></div>
+            <span>Surprise</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: #dd00ae;"></div>
+            <span>Anger</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: #ff6347;"></div>
+            <span>Fear</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: #8a2be2;"></div>
+            <span>Disgust</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Enhanced drag and drop functionality
+    const fileInputDisplay = document.querySelector('.file-input-display');
+    const fileInput = document.getElementById('videoFile');
+
+    fileInputDisplay.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      fileInputDisplay.classList.add('drag-over');
+    });
+
+    fileInputDisplay.addEventListener('dragleave', () => {
+      fileInputDisplay.classList.remove('drag-over');
+    });
+
+    fileInputDisplay.addEventListener('drop', (e) => {
+      e.preventDefault();
+      fileInputDisplay.classList.remove('drag-over');
+
+      const files = e.dataTransfer.files;
+      if (files.length > 0 && files[0].type.startsWith('video/')) {
+        fileInput.files = files;
+        fileInputDisplay.querySelector('span').textContent = files[0].name;
+      }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        fileInputDisplay.querySelector('span').textContent = e.target.files[0].name;
+      }
+    });
+
+    // Status indicator updates
+    function updateStatus(type, message) {
+      const statusIndicator = document.querySelector('.status-indicator');
+      statusIndicator.className = `status-indicator status-${type}`;
+
+      const icons = {
+        ready: '🟢',
+        processing: '<div class="loading-spinner"></div>',
+        error: '🔴'
+      };
+
+      statusIndicator.innerHTML = `${icons[type]} ${message}`;
+    }
+
+    // Enhanced results display - integrate with original results display
+    function displayResults(data) {
+      const resultsEl = document.getElementById('results');
+      resultsEl.textContent = JSON.stringify(data, null, 2);
+
+      // Update status based on results
+      if (data.frames && data.frames.length > 0) {
+        updateStatus('ready', `Analysis complete - ${data.frames.length} frames processed`);
+      } else if (data.error) {
+        updateStatus('error', 'Analysis failed');
+      } else {
+        updateStatus('processing', 'Processing video...');
+      }
+    }
+
+    // Enhanced live overlay that works with your existing displayLiveEmotion function
+    const overlay = document.getElementById('liveOverlay');
+    const video = document.getElementById('recordPreview');
+    const overlayCtx = overlay.getContext('2d');
+
+    // Ensure overlay canvas stays sized to match video
+    function resizeOverlay() {
+      if (video.videoWidth && video.videoHeight) {
+        // Match the display size of the video element
+        const rect = video.getBoundingClientRect();
+        overlay.width = rect.width;
+        overlay.height = rect.height;
+        overlay.style.width = rect.width + 'px';
+        overlay.style.height = rect.height + 'px';
+      }
+    }
+
+    // Enhanced displayLiveEmotion function that shows current emotion beautifully
+    function displayLiveEmotion(emotion) {
+      // Clear previous drawings
+      overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
+
+      if (!emotion) return;
+
+      // Emotion colors matching the legend
+      const emotionColors = {
+        'happy': '#ff6b6b',
+        'neutral': '#4ecdc4',
+        'sad': '#45b7d1',
+        'surprise': '#f9ca24',
+        'anger': '#f0932b',
+        'fear': '#eb4d4b',
+        'disgust': '#6c5ce7'
+      };
+
+      // Emotion emojis for visual appeal
+      const emotionEmojis = {
+        'happy': '😊',
+        'neutral': '😐',
+        'sad': '😢',
+        'surprise': '😲',
+        'anger': '😠',
+        'fear': '😨',
+        'disgust': '🤢'
+      };
+
+      const color = emotionColors[emotion.toLowerCase()] || '#1cabb0';
+      const emoji = emotionEmojis[emotion.toLowerCase()] || '🎭';
+
+      // Draw modern emotion display
+      const padding = 15;
+      const boxWidth = 180;
+      const boxHeight = 60;
+
+      // Draw semi-transparent rounded background
+      overlayCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      overlayCtx.beginPath();
+      overlayCtx.roundRect(padding, padding, boxWidth, boxHeight, 12);
+      overlayCtx.fill();
+
+      // Draw colored accent bar
+      overlayCtx.fillStyle = color;
+      overlayCtx.beginPath();
+      overlayCtx.roundRect(padding, padding, 4, boxHeight, 2);
+      overlayCtx.fill();
+
+      // Draw emoji
+      overlayCtx.font = '24px Arial';
+      overlayCtx.fillText(emoji, padding + 15, padding + 35);
+
+      // Draw emotion text
+      overlayCtx.fillStyle = 'white';
+      overlayCtx.font = 'bold 16px Arial';
+      overlayCtx.fillText('Current Emotion:', padding + 50, padding + 25);
+
+      // Draw emotion name with color
+      overlayCtx.fillStyle = color;
+      overlayCtx.font = 'bold 18px Arial';
+      const emotionText = emotion.charAt(0).toUpperCase() + emotion.slice(1);
+      overlayCtx.fillText(emotionText, padding + 50, padding + 45);
+    }
+
+    // Make displayLiveEmotion globally available for your script.js
+    window.displayLiveEmotion = displayLiveEmotion;
+
+    video.addEventListener('loadedmetadata', resizeOverlay);
+    video.addEventListener('resize', resizeOverlay);
+    window.addEventListener('resize', resizeOverlay);
+
+    console.log('Enhanced UI loaded. Your original script.js will handle the core functionality.');
+
+    // Override the Chart.js configuration to show connected lines instead of just points
+    // This will be applied when your script.js creates the chart
+    window.addEventListener('load', () => {
+      // Wait for your script to load, then patch the setupAndDrawTimeline function
+      setTimeout(() => {
+        if (window.setupAndDrawTimeline) {
+          const originalSetupAndDrawTimeline = window.setupAndDrawTimeline;
+          window.setupAndDrawTimeline = function (frames) {
+            // Call original function first
+            const result = originalSetupAndDrawTimeline.call(this, frames);
+
+            // Then modify the chart to show connected lines
+            if (window.chart && window.chart.config) {
+              // Change from scatter to line chart
+              window.chart.config.type = 'line';
+
+              // Update dataset configuration for connected lines
+              if (window.chart.data.datasets && window.chart.data.datasets[0]) {
+                const dataset = window.chart.data.datasets[0];
+                dataset.showLine = true;  // Show connecting lines
+                dataset.fill = false;     // Don't fill area under line
+                dataset.tension = 0.2;    // Smooth curves
+                dataset.pointRadius = 4;  // Point size
+                dataset.pointHoverRadius = 6; // Hover point size
+                dataset.borderWidth = 3;  // Line thickness
+                dataset.borderColor = '#1cabb0'; // Tropical teal line
+                dataset.backgroundColor = '#1cabb0'; // Point color
+              }
+
+              // Update chart
+              window.chart.update();
+            }
+
+            return result;
+          };
+        }
+      }, 100);
+    });
+  </script>
+  <script src="../static/script.js"></script>
+</body>
+
+</html>

@@ -12,7 +12,7 @@ import numpy as np
 app = Flask(__name__)
 @app.route("/")
 def home():
-    return render_template("index.html")  # serves templates/index.html
+    return render_template("index2.html")  # serves templates/index.html
 @app.route("/upload", methods=["POST"])
 def upload():
     if "video" not in request.files:

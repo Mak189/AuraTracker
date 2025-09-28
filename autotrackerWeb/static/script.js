@@ -17,10 +17,9 @@ const uploadForm = document.getElementById("uploadForm");
 const videoFileInput = document.getElementById("videoFile");
 
 const recordPreview = document.getElementById("recordPreview"); // live webcam preview
-const liveCanvas = document.createElement('canvas');
-// Grab video and overlay canvas elements
+// Grab overlay canvas from DOM
 const liveOverlay = document.getElementById('liveOverlay');
-const liveCtx = liveCanvas.getContext('2d');
+const liveCtx = liveOverlay.getContext('2d');
 
 // Ensure overlay matches video size once metadata is loaded
 recordPreview.addEventListener('loadedmetadata', () => {
@@ -168,7 +167,7 @@ setInterval(async () => {
   // 4. Draw overlay with backend result
   displayLiveEmotion(emotion);
 
-}, 300);
+}, 1000);
 
 
 /* ---------------------------
@@ -296,6 +295,18 @@ function buildEmotionMapping(frames) {
   // build legend UI
   legendDiv.innerHTML = set.map((em, i) => `<div>${i} → ${em}</div>`).join("");
   return set;
+}
+function drawSnapshotAtCurrentTime() {
+  if (!playback || playback.readyState < 2) {
+    console.warn("Playback not ready for snapshot");
+    return;
+  }
+
+  const ctx = snapshotCanvas.getContext('2d');
+  snapshotCanvas.width = playback.videoWidth;
+  snapshotCanvas.height = playback.videoHeight;
+
+  ctx.drawImage(playback, 0, 0, snapshotCanvas.width, snapshotCanvas.height);
 }
 
 function setupAndDrawTimeline(frames) {
